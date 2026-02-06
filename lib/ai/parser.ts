@@ -36,6 +36,10 @@ export async function parseFilename(
     4. **Year**: Extract the release year.
     5. **Season/Episode**:
        - For Series/Anime: Extract 'Sxx' and 'Exx'.
+       - **SEASON HANDLING**: 
+         - Look for "S2", "Season 2", "2nd Season", "II", "!!" (Season 2 like K-On!!), etc.
+         - Use your **INTERNAL KNOWLEDGE** about Anime/TV Series to infer the season if the title implies it (e.g. "Clannad After Story" is Season 2, "K-On!!" is Season 2).
+         - Default to Season 1 if no season indicator is found and your knowledge suggests it's the first season.
        - **SPECIALS HANDLING**: If the file contains "SP", "OVA", "NCOP", "NCED", "Menu", "Tokuten", "Benefits", "CM", "PV", "Trailer" or similar special content indicators:
          - Set "season" to 0 (Emby/Plex standard for Specials).
          - Try to extract a number for "episode" if explicitly present (e.g. "OVA 2").

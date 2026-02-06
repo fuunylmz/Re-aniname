@@ -66,6 +66,29 @@ export async function fetchTMDBDetails(
       const dateStr = bestMatch.release_date || bestMatch.first_air_date;
       const resultYear = dateStr ? new Date(dateStr).getFullYear() : year;
 
+      // If it's a TV show, try to fetch season details to see if we can map seasons
+      // But TMDB search result doesn't give season details directly.
+      // We would need a second call to /tv/{id} to get season info if we really want to validate seasons.
+      // For now, we just return the basic info.
+      // Actually, let's do a quick fetch for TV details to get season info if possible
+      let extendedInfo: any = {};
+      if (searchType === 'tv') {
+         try {
+            const tvUrl = new URL(`${TMDB_BASE_URL}/tv/${bestMatch.id}`);
+            tvUrl.searchParams.append('api_key', apiKey);
+            tvUrl.searchParams.append('language', 'zh-CN');
+            const tvRes = await fetch(tvUrl.toString());
+            if (tvRes.ok) {
+               const tvData = await tvRes.json();
+               extendedInfo = { seasons: tvData.seasons };
+               // Merge season info into bestMatch for reference
+               (bestMatch as any).seasons = tvData.seasons;
+            }
+         } catch (e) {
+            console.warn('Failed to fetch TV details', e);
+         }
+      }
+
       return {
         title: resultTitle,
         originalTitle: resultOriginalTitle || null,
