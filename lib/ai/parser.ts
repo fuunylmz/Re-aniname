@@ -38,7 +38,12 @@ export async function parseFilename(
        - For Series/Anime: Extract 'Sxx' and 'Exx'.
        - **SPECIALS HANDLING**: If the file contains "SP", "OVA", "NCOP", "NCED", or similar special content indicators:
          - Set "season" to 0 (Emby/Plex standard for Specials).
-         - Try to extract a number for "episode", otherwise default to 1 or incrementing.
+         - Try to extract a number for "episode" if explicitly present (e.g. "OVA 2").
+         - If no number is found, or if it's NCOP/NCED, use distinct numbers:
+           - NCOP/OP -> 101, 102...
+           - NCED/ED -> 151, 152...
+           - SP/OVA -> 1, 2...
+           - Ensure unique episode numbers if possible.
        - If only episode number exists (e.g., "One Piece - 1000"), try to infer.
        - If it's a movie, ignore season/episode.
     6. **Resolution/Source/Group**: Extract technical details if present.
