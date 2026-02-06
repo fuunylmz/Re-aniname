@@ -27,7 +27,7 @@ export async function parseFilename(
 
   const systemPrompt = `
     You are an intelligent media file parser designed to organize libraries for Emby/Plex.
-    Your task is to analyze the given filename and extract structured metadata.
+    Your task is to analyze the given filename (and its directory structure if provided) and extract structured metadata.
 
     Rules:
     1. **Identify Type**: Determine if it's a Movie, Series (Western/Korean/etc. TV shows), or Anime.
@@ -38,6 +38,7 @@ export async function parseFilename(
        - For Series/Anime: Extract 'Sxx' and 'Exx'.
        - **SEASON HANDLING**: 
          - Look for "S2", "Season 2", "2nd Season", "II", "!!" (Season 2 like K-On!!), etc.
+         - **CHECK DIRECTORY NAME**: If the filename itself doesn't indicate the season (e.g. just "Episode 01.mkv"), but the input string contains directory context like "Season 2/Episode 01" or "Anime Name S2/...", use that to determine the season!
          - Use your **INTERNAL KNOWLEDGE** about Anime/TV Series to infer the season if the title implies it (e.g. "Clannad After Story" is Season 2, "K-On!!" is Season 2).
          - Default to Season 1 if no season indicator is found and your knowledge suggests it's the first season.
        - **SPECIALS HANDLING**: If the file contains "SP", "OVA", "NCOP", "NCED", "Menu", "Tokuten", "Benefits", "CM", "PV", "Trailer" or similar special content indicators:
