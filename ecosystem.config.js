@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 're-aniname',
       script: 'node_modules/next/dist/bin/next',
-      args: 'start',
+      args: 'start -H 0.0.0.0',
       instances: 1,
       autorestart: true,
       watch: false,
