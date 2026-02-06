@@ -13,6 +13,17 @@ const RequestSchema = z.object({
   }).optional(),
 });
 
+// Simple in-memory cache for TMDB results to ensure consistency across a batch
+// Key: Normalized title + year
+// Value: TMDB result
+const TMDB_CACHE = new Map<string, any>();
+
+// Helper to normalize cache key
+function getCacheKey(title: string, year: number | null | undefined) {
+  const normalizedTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return `${normalizedTitle}-${year || 'any'}`;
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -24,7 +35,28 @@ export async function POST(req: Request) {
     // 2. TMDB Enrichment (if key provided)
     if (config?.tmdbApiKey) {
       console.log(`[Analyze] Fetching TMDB for: ${mediaInfo.title} (${mediaInfo.year})`);
-      const tmdbInfo = await fetchTMDBDetails(mediaInfo, config.tmdbApiKey);
+      
+      const cacheKey = getCacheKey(mediaInfo.title, mediaInfo.year);
+      
+      // Try to get from cache first if title is long enough to be unique
+      // (Avoid caching very short titles like "One" or "The")
+      let tmdbInfo = null;
+      if (mediaInfo.title.length > 2 && TMDB_CACHE.has(cacheKey)) {
+         console.log(`[Analyze] TMDB Cache HIT for: ${cacheKey}`);
+         tmdbInfo = TMDB_CACHE.get(cacheKey);
+      } else {
+         tmdbInfo = await fetchTMDBDetails(mediaInfo, config.tmdbApiKey);
+         // Cache valid results
+         if (tmdbInfo.tmdbId && mediaInfo.title.length > 2) {
+            TMDB_CACHE.set(cacheKey, tmdbInfo);
+            // Also cache by Original Title if available
+            if (mediaInfo.originalTitle) {
+               const originalKey = getCacheKey(mediaInfo.originalTitle, mediaInfo.year);
+               TMDB_CACHE.set(originalKey, tmdbInfo);
+            }
+         }
+      }
+
       console.log(`[Analyze] TMDB Result:`, tmdbInfo.tmdbId ? `Found ID: ${tmdbInfo.tmdbId}` : 'Not Found');
       
       // Merge TMDB info into mediaInfo
