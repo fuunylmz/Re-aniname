@@ -17,6 +17,7 @@ const RequestSchema = z.object({
 // Key: Normalized title + year
 // Value: TMDB result
 const TMDB_CACHE = new Map<string, any>();
+const TMDB_ID_CACHE = new Map<number, any>(); // Secondary cache: ID -> Metadata
 
 // Helper to normalize cache key
 function getCacheKey(title: string, year: number | null | undefined) {
@@ -37,22 +38,38 @@ export async function POST(req: Request) {
       console.log(`[Analyze] Fetching TMDB for: ${mediaInfo.title} (${mediaInfo.year})`);
       
       const cacheKey = getCacheKey(mediaInfo.title, mediaInfo.year);
-      
-      // Try to get from cache first if title is long enough to be unique
-      // (Avoid caching very short titles like "One" or "The")
       let tmdbInfo = null;
+
+      // 1. Check title-based cache first
       if (mediaInfo.title.length > 2 && TMDB_CACHE.has(cacheKey)) {
          console.log(`[Analyze] TMDB Cache HIT for: ${cacheKey}`);
          tmdbInfo = TMDB_CACHE.get(cacheKey);
       } else {
+         // 2. Perform fresh search
          tmdbInfo = await fetchTMDBDetails(mediaInfo, config.tmdbApiKey);
-         // Cache valid results
-         if (tmdbInfo.tmdbId && mediaInfo.title.length > 2) {
-            TMDB_CACHE.set(cacheKey, tmdbInfo);
-            // Also cache by Original Title if available
-            if (mediaInfo.originalTitle) {
-               const originalKey = getCacheKey(mediaInfo.originalTitle, mediaInfo.year);
-               TMDB_CACHE.set(originalKey, tmdbInfo);
+         
+         // 3. Cache valid results
+         if (tmdbInfo.tmdbId) {
+            // Check if we already have a canonical metadata for this TMDB ID
+            if (TMDB_ID_CACHE.has(tmdbInfo.tmdbId)) {
+               console.log(`[Analyze] TMDB ID HIT (${tmdbInfo.tmdbId}). Unifying metadata.`);
+               // Use the canonical metadata (Title/Year) from the ID cache to ensure folder consistency
+               // even if the search result returned slightly different aliases.
+               const cachedMetadata = TMDB_ID_CACHE.get(tmdbInfo.tmdbId);
+               tmdbInfo = { ...tmdbInfo, title: cachedMetadata.title, year: cachedMetadata.year, originalTitle: cachedMetadata.originalTitle };
+            } else {
+               // Store this result as the canonical metadata for this ID
+               TMDB_ID_CACHE.set(tmdbInfo.tmdbId, tmdbInfo);
+            }
+
+            // Update title-based cache
+            if (mediaInfo.title.length > 2) {
+               TMDB_CACHE.set(cacheKey, tmdbInfo);
+               // Also cache by Original Title if available to link them
+               if (mediaInfo.originalTitle) {
+                  const originalKey = getCacheKey(mediaInfo.originalTitle, mediaInfo.year);
+                  TMDB_CACHE.set(originalKey, tmdbInfo);
+               }
             }
          }
       }
