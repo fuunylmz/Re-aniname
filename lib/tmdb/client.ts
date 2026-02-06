@@ -58,17 +58,14 @@ export async function fetchTMDBDetails(
   }
 
   // Helper function for search
-  const performSearch = async (query: string, language: string) => {
+  const performSearch = async (query: string, language: string, includeYear: boolean = true) => {
     try {
       const url = new URL(`${TMDB_BASE_URL}/search/${searchType}`);
       url.searchParams.append('api_key', apiKey);
       url.searchParams.append('query', query);
       
       // Strict year filtering might miss if database has different year. 
-      // Maybe relax it? Or keep it for accuracy. 
-      // For anime, years can be tricky (broadcast vs release). 
-      // Let's keep it but be aware.
-      if (year && year > 0) {
+      if (includeYear && year && year > 0) {
         if (searchType === 'movie') {
           url.searchParams.append('primary_release_year', year.toString());
         } else {
@@ -94,13 +91,28 @@ export async function fetchTMDBDetails(
   // Execute Search Queue
   let bestMatch: TMDBResult | null = null;
   
+  // First pass: Search with Year constraint
   for (const item of searchQueries) {
-    console.log(`[TMDB] Searching: "${item.query}" (Lang: ${item.lang})`);
-    bestMatch = await performSearch(item.query, item.lang);
+    console.log(`[TMDB] Searching: "${item.query}" (Lang: ${item.lang}) with Year: ${year}`);
+    bestMatch = await performSearch(item.query, item.lang, true);
     if (bestMatch) {
       console.log(`[TMDB] Found match: ${bestMatch.name || bestMatch.title} (ID: ${bestMatch.id})`);
       break;
     }
+  }
+
+  // Second pass: If not found, try searching WITHOUT Year constraint
+  // Often anime releases in different years or "T" version has different year metadata
+  if (!bestMatch) {
+     console.log('[TMDB] No match found with year constraint. Retrying without year...');
+     for (const item of searchQueries) {
+       console.log(`[TMDB] Searching: "${item.query}" (Lang: ${item.lang}) without Year`);
+       bestMatch = await performSearch(item.query, item.lang, false);
+       if (bestMatch) {
+         console.log(`[TMDB] Found match (No Year): ${bestMatch.name || bestMatch.title} (ID: ${bestMatch.id})`);
+         break;
+       }
+     }
   }
 
   if (bestMatch) {
