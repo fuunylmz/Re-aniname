@@ -11,6 +11,10 @@ const RequestSchema = z.object({
     model: z.string().optional(),
     tmdbApiKey: z.string().optional(),
   }).optional(),
+  context: z.object({
+    siblingFiles: z.array(z.string()).optional(),
+    parentFolder: z.string().optional(),
+  }).optional(),
 });
 
 // Simple in-memory cache for TMDB results to ensure consistency across a batch
@@ -28,10 +32,10 @@ function getCacheKey(title: string, year: number | null | undefined) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { filename, config } = RequestSchema.parse(body);
+    const { filename, config, context } = RequestSchema.parse(body);
 
     // 1. AI Parsing
-    let mediaInfo = await parseFilename(filename, config);
+    let mediaInfo = await parseFilename(filename, config, context);
 
     // 2. TMDB Enrichment (if key provided)
     if (config?.tmdbApiKey) {
