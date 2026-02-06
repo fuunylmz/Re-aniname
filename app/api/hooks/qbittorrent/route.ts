@@ -6,6 +6,7 @@ import { fetchTMDBDetails } from '@/lib/tmdb/client';
 import { processFile } from '@/lib/renamer';
 import path from 'path';
 import fs from 'fs/promises';
+import type { ScannedFile } from '@/lib/ai/schema';
 
 // This endpoint receives a POST request with { path: "..." }
 // It will scan, analyze, and process files in that path using server-side config.
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
 
     // 2. Scan (Treat inputPath as potential file or directory)
     // We need to check if it's a file or directory
-    let filesToProcess = [];
+    let filesToProcess: ScannedFile[] = [];
     try {
       const stat = await fs.stat(inputPath);
       if (stat.isDirectory()) {
@@ -87,7 +88,7 @@ export async function POST(req: Request) {
           { ...file, mediaInfo }, // Attach mediaInfo
           {
             outputDir: config.outputDir!, // Assume outputDir is set if config exists
-            outputMode: config.outputMode || 'link',
+            mode: config.outputMode || 'link',
           }
         );
 

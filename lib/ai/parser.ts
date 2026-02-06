@@ -23,7 +23,6 @@ export async function parseFilename(
   const openai = createOpenAI({
     apiKey,
     baseURL: baseURL || undefined,
-    compatibility: 'compatible',
   });
 
   const systemPrompt = `
