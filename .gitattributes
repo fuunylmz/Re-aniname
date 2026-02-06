@@ -1,0 +1,10 @@
+# Enforce LF line endings on all text files
+* text=auto eol=lf
+
+# Explicitly declare binary files if needed
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg text
